@@ -13,7 +13,10 @@
         }
     },
     "extract_dir": "coredence",
-    "bin": "coredence.bat",
+    "env_add_path": ".",
+    "post_install": [
+        "if (schtasks /query /tn CoredenceEngineRefresh 2>$null) { $null | & \"$dir\\coredence.bat\" schedule on }"
+    ],
     "notes": "Run 'coredence start' to set up. Your identity stays in ~/.coredence when this package is removed.",
     "checkver": {
         "github": "https://github.com/coredence/coredence"

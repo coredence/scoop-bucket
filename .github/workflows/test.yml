@@ -15,32 +15,55 @@ jobs:
         run: |
           iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
           "$env:USERPROFILE\scoop\shims" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
-      - name: Install from this bucket
+      - name: Install the previous release
         run: |
           scoop bucket add coredence "https://github.com/$env:GITHUB_REPOSITORY"
+          $kova = "$env:USERPROFILE\scoop\buckets\coredence"
+          $m = Get-Content "$kova\bucket\coredence.json" -Raw | ConvertFrom-Json
+          $yeni = $m.version
+          $eski = gh release view --repo coredence/coredence --json tagName,assets -q .tagName 2>$null
+          $liste = gh api repos/coredence/coredence/releases --jq '.[].tag_name' | ForEach-Object { $_.TrimStart('v') }
+          $eski = ($liste | Where-Object { $_ -ne $yeni })[0]
+          $d = gh api "repos/coredence/coredence/releases/tags/v$eski" --jq ".assets[] | select(.name == \"coredence-windows-$eski.zip\") | .digest"
+          $m.version = $eski
+          $m.architecture.'64bit'.url = "https://github.com/coredence/coredence/releases/download/v$eski/coredence-windows-$eski.zip"
+          $m.architecture.'64bit'.hash = $d.Replace('sha256:','')
+          $m | ConvertTo-Json -Depth 8 | Set-Content "$kova\bucket\coredence.json"
           scoop install coredence
-      - name: Command runs
+          git -C $kova checkout -- .
+          "OLD=$eski" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "NEW=$yeni" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Both command names work
         run: |
-          $null | coredence --help
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Hourly task path
+          $env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
+          $null | coredence --help | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $null | coredence.bat --help | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Hourly task follows an update
         run: |
-          Get-Command coredence* | Format-Table Name,Source
+          $env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
           $null | coredence schedule on
-          schtasks /query /fo LIST /v | Select-String -Pattern 'coredence' -SimpleMatch
-          exit 0
-      - name: Paths the engine writes
+          scoop update coredence
+          $t = schtasks /query /tn CoredenceEngineRefresh /xml | Out-String
+          $t -split "`n" | Select-String -Pattern 'Command|WorkingDirectory'
+          if ($t -notmatch "WorkingDirectory>[^<]*\\($env:NEW|current)<") { Write-Error "task still points at the old version"; exit 1 }
+          if ($t -match [regex]::Escape($env:OLD)) { Write-Error "task mentions $env:OLD"; exit 1 }
+      - name: Update cleanup does not break the task
         run: |
-          $null | coredence doctor
-          Get-ChildItem "$env:USERPROFILE\scoop\apps\coredence"
+          $env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
+          scoop cleanup coredence
+          schtasks /run /tn CoredenceEngineRefresh
+          Start-Sleep -Seconds 15
+          schtasks /query /tn CoredenceEngineRefresh /v /fo LIST | Select-String 'Last Result','Status'
           exit 0
-      - name: Terminal launcher
+      - name: Uninstall
         run: |
-          $null | coredence launcher
-          $null | coredence path --add
-          exit 0
-      - name: Uninstall keeps nothing behind
-        run: |
+          $env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
           $null | coredence schedule off
           scoop uninstall coredence
           if (Test-Path "$env:USERPROFILE\scoop\apps\coredence") { exit 1 }
+          $p = [Environment]::GetEnvironmentVariable('Path','User')
+          if ($p -match 'apps\\coredence') { Write-Error "PATH still has it"; exit 1 }

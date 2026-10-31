@@ -21,7 +21,7 @@ jobs:
           scoop install coredence
       - name: Command runs
         run: |
-          $null | coredence --version
+          $null | coredence where
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Hourly task path
         run: |

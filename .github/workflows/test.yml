@@ -1,0 +1,40 @@
+name: test
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  install:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Scoop
+        run: |
+          iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
+          "$env:USERPROFILE\scoop\shims" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+      - name: Install from this bucket
+        run: |
+          scoop bucket add coredence "$env:GITHUB_WORKSPACE"
+          scoop install coredence
+      - name: Command runs
+        run: |
+          coredence --version < $null
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Hourly task path
+        run: |
+          coredence schedule on
+          schtasks /query /fo LIST /v | Select-String -Pattern 'coredence' -SimpleMatch
+          exit 0
+      - name: Paths the engine writes
+        run: |
+          coredence doctor
+          Get-ChildItem "$env:USERPROFILE\scoop\apps\coredence"
+          exit 0
+      - name: Uninstall keeps nothing behind
+        run: |
+          coredence schedule off
+          scoop uninstall coredence
+          if (Test-Path "$env:USERPROFILE\scoop\apps\coredence") { exit 1 }

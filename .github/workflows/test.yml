@@ -21,20 +21,20 @@ jobs:
           scoop install coredence
       - name: Command runs
         run: |
-          coredence --version < $null
+          $null | coredence --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Hourly task path
         run: |
-          coredence schedule on
+          $null | coredence schedule on
           schtasks /query /fo LIST /v | Select-String -Pattern 'coredence' -SimpleMatch
           exit 0
       - name: Paths the engine writes
         run: |
-          coredence doctor
+          $null | coredence doctor
           Get-ChildItem "$env:USERPROFILE\scoop\apps\coredence"
           exit 0
       - name: Uninstall keeps nothing behind
         run: |
-          coredence schedule off
+          $null | coredence schedule off
           scoop uninstall coredence
           if (Test-Path "$env:USERPROFILE\scoop\apps\coredence") { exit 1 }

@@ -17,7 +17,7 @@ jobs:
           "$env:USERPROFILE\scoop\shims" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
       - name: Install from this bucket
         run: |
-          scoop bucket add coredence "$env:GITHUB_WORKSPACE"
+          scoop bucket add coredence "https://github.com/$env:GITHUB_REPOSITORY"
           scoop install coredence
       - name: Command runs
         run: |

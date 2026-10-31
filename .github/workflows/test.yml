@@ -38,9 +38,9 @@ jobs:
       - name: Both command names work
         run: |
           $env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
-          $null | coredence --help | Select-Object -First 1
+          $null | coredence --help > $null
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          $null | coredence.bat --help | Select-Object -First 1
+          $null | coredence.bat --help > $null
           if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Hourly task follows an update
         run: |

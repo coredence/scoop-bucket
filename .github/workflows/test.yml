@@ -21,10 +21,10 @@ jobs:
           $kova = "$env:USERPROFILE\scoop\buckets\coredence"
           $m = Get-Content "$kova\bucket\coredence.json" -Raw | ConvertFrom-Json
           $yeni = $m.version
-          $eski = gh release view --repo coredence/coredence --json tagName,assets -q .tagName 2>$null
           $liste = gh api repos/coredence/coredence/releases --jq '.[].tag_name' | ForEach-Object { $_.TrimStart('v') }
           $eski = ($liste | Where-Object { $_ -ne $yeni })[0]
-          $d = gh api "repos/coredence/coredence/releases/tags/v$eski" --jq ".assets[] | select(.name == \"coredence-windows-$eski.zip\") | .digest"
+          $a = (gh api "repos/coredence/coredence/releases/tags/v$eski" | ConvertFrom-Json).assets
+          $d = ($a | Where-Object name -eq "coredence-windows-$eski.zip").digest
           $m.version = $eski
           $m.architecture.'64bit'.url = "https://github.com/coredence/coredence/releases/download/v$eski/coredence-windows-$eski.zip"
           $m.architecture.'64bit'.hash = $d.Replace('sha256:','')

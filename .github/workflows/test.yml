@@ -21,10 +21,11 @@ jobs:
           scoop install coredence
       - name: Command runs
         run: |
-          $null | coredence where
+          $null | coredence --help
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Hourly task path
         run: |
+          Get-Command coredence* | Format-Table Name,Source
           $null | coredence schedule on
           schtasks /query /fo LIST /v | Select-String -Pattern 'coredence' -SimpleMatch
           exit 0
@@ -32,6 +33,11 @@ jobs:
         run: |
           $null | coredence doctor
           Get-ChildItem "$env:USERPROFILE\scoop\apps\coredence"
+          exit 0
+      - name: Terminal launcher
+        run: |
+          $null | coredence launcher
+          $null | coredence path --add
           exit 0
       - name: Uninstall keeps nothing behind
         run: |

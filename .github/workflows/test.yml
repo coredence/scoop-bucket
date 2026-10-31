@@ -42,23 +42,44 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           $null | coredence.bat --help > $null
           if ($LASTEXITCODE -ne 0) { exit 1 }
-      - name: Hourly task follows an update
+      - name: Set up an identity
         run: |
           $env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
+          New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\projects\ornek" | Out-Null
+          $null | coredence start --yes
+          $null | coredence status
+          Test-Path "$env:USERPROFILE\.coredence\profile.toml"
           $null | coredence schedule on
+          exit 0
+      - name: Update, then paths follow the link
+        run: |
+          $env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
           scoop update coredence
           $t = schtasks /query /tn CoredenceEngineRefresh /xml | Out-String
           $t -split "`n" | Select-String -Pattern 'Command|WorkingDirectory'
-          if ($t -notmatch "WorkingDirectory>[^<]*\\($env:NEW|current)<") { Write-Error "task still points at the old version"; exit 1 }
-          if ($t -match [regex]::Escape($env:OLD)) { Write-Error "task mentions $env:OLD"; exit 1 }
-      - name: Update cleanup does not break the task
+          if ($t -notmatch 'WorkingDirectory>[^<]*\\current<') { Write-Error "task working directory is not current"; exit 1 }
+          $py = "$env:USERPROFILE\scoop\apps\coredence\current\python\python.exe"
+          $env:PYTHONPATH = "$env:USERPROFILE\scoop\apps\coredence\current"
+          $e = & $py -c "import json; from coredence.clients import server_entry; print(json.dumps(server_entry()))"
+          $e
+          if ($e -notmatch 'current\\\\python') { Write-Error "MCP command is not under current"; exit 1 }
+          if (($e | ConvertFrom-Json).env.PYTHONPATH -notmatch '\\current$') { Write-Error "MCP PYTHONPATH is not current"; exit 1 }
+      - name: Cleanup, then task and MCP server still run
         run: |
           $env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
           scoop cleanup coredence
+          if (Test-Path "$env:USERPROFILE\scoop\apps\coredence\$env:OLD") { Write-Error "old version remains"; exit 1 }
+          $null | coredence refresh --quiet
+          "refresh exit $LASTEXITCODE"
           schtasks /run /tn CoredenceEngineRefresh
-          Start-Sleep -Seconds 15
+          Start-Sleep -Seconds 30
           schtasks /query /tn CoredenceEngineRefresh /v /fo LIST | Select-String 'Last Result','Status'
-          exit 0
+          $py = "$env:USERPROFILE\scoop\apps\coredence\current\python\python.exe"
+          $env:PYTHONPATH = "$env:USERPROFILE\scoop\apps\coredence\current"
+          $istek = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}'
+          $cevap = $istek | & $py -m coredence.mcp
+          $cevap
+          if ($cevap -notmatch 'serverInfo') { Write-Error "MCP server did not answer"; exit 1 }
       - name: Uninstall
         run: |
           $env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path

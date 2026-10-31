@@ -1,0 +1,28 @@
+{
+    "version": "2.1.6",
+    "description": "One memory for all your AI assistants, built on your own computer. Engine and command line; the desktop window comes with the installer from coredence.com.",
+    "homepage": "https://coredence.com/",
+    "license": {
+        "identifier": "Proprietary",
+        "url": "https://coredence.com/license"
+    },
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/coredence/coredence/releases/download/v2.1.6/coredence-windows-2.1.6.zip",
+            "hash": "6ce011552ef17c8b9c75538ff3f73b7fdfde906e633a256d796f851e5804544b"
+        }
+    },
+    "extract_dir": "coredence",
+    "bin": "coredence.bat",
+    "notes": "Run 'coredence start' to set up. Your identity stays in ~/.coredence when this package is removed.",
+    "checkver": {
+        "github": "https://github.com/coredence/coredence"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/coredence/coredence/releases/download/v$version/coredence-windows-$version.zip"
+            }
+        }
+    }
+}

@@ -1,5 +1,5 @@
 {
-    "version": "2.1.7",
+    "version": "2.1.8",
     "description": "One memory for all your AI assistants, built on your own computer. Engine and command line; the desktop window comes with the installer from coredence.com.",
     "homepage": "https://coredence.com/",
     "license": {
@@ -8,8 +8,8 @@
     },
     "architecture": {
         "64bit": {
-            "url": "https://github.com/coredence/coredence/releases/download/v2.1.7/coredence-windows-2.1.7.zip",
-            "hash": "c99d159aee640eb30360acb6c646bee79740394eaaa59cc6d3897cbec812b126"
+            "url": "https://github.com/coredence/coredence/releases/download/v2.1.8/coredence-windows-2.1.8.zip",
+            "hash": "5f82b800159dd23d67e62f5b31d1da359abce1e01b32845a9e6c40530a99cbb8"
         }
     },
     "extract_dir": "coredence",
